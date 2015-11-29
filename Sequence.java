@@ -49,7 +49,7 @@ class InputSignal  extends Node {
    }
    public void update() {
       count = count +1;
-      v = count * count;
+      v = 0.001 * count * count;
       return;
    }
 
@@ -58,9 +58,11 @@ class InputSignal  extends Node {
 class Neuron extends Node{
 
      private double v;
+     private ArrayList<Reporter> reporterList;
      
      public Neuron() {
-        inputs = new ArrayList<Link>();
+        inputs       = new ArrayList<Link>();
+        reporterList = new ArrayList<Reporter>();
      }
      private ArrayList<Link> inputs;
   
@@ -72,10 +74,19 @@ class Neuron extends Node{
      }
      public void update() {
          double v = 0;
+         double t = 0;
          for (Link l : inputs) {
-           v = v + l.getV();
+           t = t + l.getV();   
          }
-         this.v = v;
+         this.v = (2 /(1 + Math.exp(-2*t))) - 1;
+         
+         for (Reporter r: reporterList) {
+           r.addValue(this.v);
+         }
+     }
+     public void attachReporter(Reporter r)
+     {
+         reporterList.add(r);
      } 
 }
 
@@ -101,17 +112,24 @@ public class Sequence{
      public static void main(String[] args) {
      
         InputSignal s1 = new InputSignal();
+        Reporter rep   = new LineReporter();
+        Reporter rep2  = new LineReporter();
+        rep.init();
+        rep2.init();
+   
         Neuron n1 = new Neuron();
         Neuron n2 = new Neuron();
         Neuron n3 = new Neuron();
         Neuron n4 = new Neuron();
+        
+        n3.attachReporter(rep2);
+        n4.attachReporter(rep);
         
         Link l1= new Link(s1,n1,1.0);
         Link l2= new Link(s1,n2,1.0);
         Link l3= new Link(n2,n3,1.0);
         Link l4= new Link(n1,n4,1.0);
         Link l5= new Link(n3,n4,-1.0);
-        
         
         Sequence s = new Sequence();
         
@@ -126,9 +144,10 @@ public class Sequence{
         s.addElement(l1);
         s.addElement(s1);
         
-        for (int i=0; i < 30; i++) {
-           s.cycle();
-           System.out.println("Neuron n4: " + n1.getV()+" "+n2.getV()+" "+n3.getV()+" "+n4.getV() );
+        for (int i=0; i < 100; i++) {
+           s.cycle(); 
         }
+        rep.report();
+        rep2.report();
      }
 }
